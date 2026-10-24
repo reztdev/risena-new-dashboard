@@ -192,9 +192,8 @@
   function setupCharts() {
     if (!window.Chart) return;
     window.Chart.register({
-      id: 'risenaMobile',
+      id: 'risenaTheme',
       beforeUpdate(chart) {
-        if (!isMobile()) return;
         const F = window.Chart.defaults;
         F.font.family = "'Plus Jakarta Sans','DM Sans',system-ui,sans-serif";
         F.color = cssVar('--text3') || F.color;
@@ -288,16 +287,43 @@
   let raf = 0;
   function process() {
     raf = 0;
-    if (!isMobile()) return;
-    decorateTables();
-    swapIcons();
+    swapIcons();                 // ikon SVG dipakai di desktop & mobile
+    if (isMobile()) decorateTables();   // tabel → kartu hanya di mobile
   }
   function schedule() { if (!raf) raf = requestAnimationFrame(process); }
+
+  // Sembunyikan / tampilkan sidebar (desktop). Pilihan diingat di localStorage.
+  function buildSidebarToggle() {
+    if (document.getElementById('sb-toggle')) return;
+    const root = document.documentElement;
+    const b = document.createElement('button');
+    b.id = 'sb-toggle'; b.type = 'button';
+    b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
+    document.body.appendChild(b);
+    function apply(collapsed, save) {
+      root.classList.toggle('sb-collapsed', collapsed);
+      const label = collapsed ? 'Tampilkan menu' : 'Sembunyikan menu';
+      b.setAttribute('aria-label', label);
+      b.setAttribute('aria-expanded', String(!collapsed));
+      b.title = label + ' (Ctrl+B)';
+      if (save) { try { localStorage.setItem('risena_sb', collapsed ? '1' : '0'); } catch (e) {} }
+      // beri tahu chart agar menyesuaikan lebar setelah transisi
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
+    }
+    apply(root.classList.contains('sb-collapsed'), false);
+    b.addEventListener('click', () => apply(!root.classList.contains('sb-collapsed'), true));
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'b' && !isMobile()) {
+        e.preventDefault(); b.click();
+      }
+    });
+  }
 
   function init() {
     setupCharts();
     buildLogin();
     buildThemeToggle();
+    buildSidebarToggle();
     buildNav();
     wrapNavigate();
     watchSheet();
